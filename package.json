@@ -1,0 +1,32 @@
+{
+  "name": "job-copilot-mcp",
+  "version": "1.0.0",
+  "description": "Claude MCP server to help job seekers find jobs, tailor resumes, and track applications",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:axios",
+    "start": "node dist/index.js",
+    "dev": "node --loader ts-node/esm src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "jobs",
+    "resume",
+    "career",
+    "job-search"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.28.2",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
