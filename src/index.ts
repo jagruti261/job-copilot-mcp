@@ -10,6 +10,8 @@ import {
   addApplication,
   updateApplication,
   getApplications,
+  saveApiKeys,
+  getApiKeys,
 } from "./storage.js";
 
 const server = new McpServer({
@@ -141,8 +143,20 @@ Requirements:
 // ── Job search tools ───────────────────────────────────────────
 
 server.tool(
+  "setup_api_keys",
+  "Save API keys to unlock LinkedIn, Indeed, and Google Jobs search. Get a free JSearch key at rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch (200 free searches/month)",
+  {
+    jsearchRapidApiKey: z.string().describe("Your RapidAPI key for JSearch — gives access to LinkedIn, Indeed, Google Jobs, Glassdoor"),
+  },
+  async ({ jsearchRapidApiKey }) => {
+    saveApiKeys({ jsearchRapidApiKey });
+    return { content: [{ type: "text", text: "API key saved. Job searches will now include LinkedIn, Indeed, Google Jobs, and Glassdoor." }] };
+  }
+);
+
+server.tool(
   "search_jobs",
-  "Search for latest job listings from multiple free job boards (Remotive, Arbeitnow)",
+  "Search for latest job listings from LinkedIn, Indeed, Google Jobs (with API key) + Remotive, RemoteOK, The Muse, Arbeitnow (always free)",
   {
     query: z.string().describe("Job title, skills, or keywords e.g. 'React developer' or 'data analyst'"),
     remoteOnly: z.boolean().optional().default(false),
@@ -150,7 +164,8 @@ server.tool(
   },
   async ({ query, remoteOnly, limit }) => {
     const safeLimit = Math.min(limit ?? 10, 20);
-    const jobs = await searchJobs(query, remoteOnly ?? false, safeLimit);
+    const { jsearchRapidApiKey } = getApiKeys();
+    const { jobs, sources, note } = await searchJobs(query, remoteOnly ?? false, safeLimit, jsearchRapidApiKey);
 
     if (!jobs.length) {
       return { content: [{ type: "text", text: `No jobs found for "${query}". Try broader keywords.` }] };
@@ -159,11 +174,14 @@ server.tool(
     const output = jobs
       .map(
         (j, i) =>
-          `${i + 1}. **${j.title}** at ${j.company}\n   📍 ${j.location} | 🕐 ${j.postedAt.split("T")[0]} | Source: ${j.source}\n   ${j.salary ? `💰 ${j.salary}\n   ` : ""}🔗 ${j.url}\n   Tags: ${j.tags.slice(0, 5).join(", ")}`
+          `${i + 1}. **${j.title}** at ${j.company}\n   📍 ${j.location} | 🕐 ${j.postedAt} | Source: ${j.source}\n   ${j.salary ? `💰 ${j.salary}\n   ` : ""}🔗 ${j.url}${j.tags.length ? `\n   Tags: ${j.tags.slice(0, 5).join(", ")}` : ""}`
       )
       .join("\n\n");
 
-    return { content: [{ type: "text", text: `Found ${jobs.length} jobs for "${query}":\n\n${output}` }] };
+    const header = `Found ${jobs.length} jobs for "${query}" (searched: ${sources.join(", ")}):`;
+    const footer = note ? `\n\n${note}` : "";
+
+    return { content: [{ type: "text", text: `${header}\n\n${output}${footer}` }] };
   }
 );
 

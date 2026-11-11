@@ -6,6 +6,22 @@ const DATA_DIR = path.join(os.homedir(), ".job-copilot");
 const PROFILE_FILE = path.join(DATA_DIR, "profile.json");
 const RESUME_FILE = path.join(DATA_DIR, "resume.txt");
 const APPS_FILE = path.join(DATA_DIR, "applications.json");
+const KEYS_FILE = path.join(DATA_DIR, "api-keys.json");
+
+export interface ApiKeys {
+  jsearchRapidApiKey?: string;
+}
+
+export function saveApiKeys(keys: ApiKeys): void {
+  ensureDir();
+  const existing = getApiKeys();
+  fs.writeFileSync(KEYS_FILE, JSON.stringify({ ...existing, ...keys }, null, 2));
+}
+
+export function getApiKeys(): ApiKeys {
+  if (!fs.existsSync(KEYS_FILE)) return {};
+  return JSON.parse(fs.readFileSync(KEYS_FILE, "utf-8"));
+}
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
